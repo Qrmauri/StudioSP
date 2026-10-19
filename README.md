@@ -35,6 +35,12 @@ Sampler en C++20 / JUCE 8 basado en [SPECIFICATION.md](SPECIFICATION.md).
 - Proyectos `.studiosp` y estado del plugin con audio incorporado.
 - Standalone y VST3 en Windows/Linux; también AU en macOS.
 
+## Instalador para Windows
+
+El asistente permite elegir Standalone, VST3 y acceso en el escritorio; incluye desinstalador y Visual C++ Runtime x64 cuando hace falta. Requiere Windows 10/11 de 64 bits y permisos de administrador. Cierra StudioSP y tus DAW antes de instalar. La desinstalacion conserva proyectos, samples y preferencias.
+
+Para generar el .exe: `./scripts/build-installer.ps1`. La salida queda en `build/dist/StudioSP-0.3.0-Setup-x64.exe`, junto con su SHA-256. El instalador se puede usar sin Internet y no necesita Python, Visual Studio ni CMake en el equipo de destino. Para validar el empaquetado: `./scripts/test-installer.ps1`. Instrucciones y limites de la prueba aislada en [installer/README.md](installer/README.md). El instalador todavia no tiene firma digital.
+
 ## Compilar
 
 Windows: Visual Studio / Build Tools con **Desarrollo para el escritorio con C++**, Windows SDK, Git y CMake 3.22+. JUCE 8.0.4 y Rubber Band 3.3.0 se descargan en la primera configuración.

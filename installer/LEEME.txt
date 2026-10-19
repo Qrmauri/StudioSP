@@ -1,0 +1,27 @@
+StudioSP para Windows 10/11 de 64 bits
+
+Componentes
+- Aplicacion independiente: abre StudioSP desde Inicio o el escritorio.
+- VST3: se instala en la carpeta compartida VST3 de Windows.
+  Cierra tu DAW antes de instalar y vuelve a escanear los plugins despues.
+- Visual C++ Runtime x64 de Microsoft: se instala si tu equipo lo necesita.
+  No hace falta Visual Studio, CMake, Python ni conexion a Internet para instalar.
+
+Primeros pasos
+1. En AUDIO / MIDI elige tu interfaz y activa la entrada MIDI (standalone).
+2. Arrastra WAV, FLAC o AIFF a un pad; no se incluye un kit de samples.
+3. Abre SEQUENCER para editar A/B/C/D. DAW SYNC sigue el transporte del host;
+   INTERNAL permite tocar sin un DAW. Elige PLAY para arrancar en INTERNAL.
+4. REC MIDI graba desde controlador o pads. Quantize 1/16 es opcional.
+5. EXPORT MIDI guarda el patron elegido en un archivo .mid.
+6. SAVE conserva el proyecto, con sus samples, patrones y ajustes.
+
+Actualizacion y desinstalacion
+Cierra StudioSP y todos los DAW antes de actualizar o desinstalar.
+Desinstala desde Configuracion > Aplicaciones o desde Inicio > StudioSP.
+El desinstalador no elimina tus proyectos, samples, carpetas ni preferencias.
+El runtime compartido de Microsoft tampoco se elimina.
+
+Documentacion y codigo: https://github.com/Qrmauri/StudioSP
+Las licencias y avisos de las dependencias se incluyen en Licenses.
+Este instalador no tiene firma digital de editor ni actualizacion automatica.

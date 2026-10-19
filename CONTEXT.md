@@ -142,4 +142,6 @@ Las pruebas documentadas cubren DSP, MIDI, choke, capturas, historial, proyectos
 
 ## Cómo continuar en otro chat
 
+- Instalador Windows x64 NSIS en `installer/StudioSP.nsi`. `scripts/build-installer.ps1` compila/empaqueta y `scripts/test-installer.ps1` prueba instalacion/actualizacion/desinstalacion en carpeta aislada, sin registro global ni runtime. EXE en `build/dist`, excluido de Git. Incluye Standalone/VST3 opcionales, runtime firmado de Microsoft, guia, licencias y desinstalador. Detalles y limites en `installer/README.md`.
+
 Usa este documento como contexto inicial y añade la tarea concreta que quieres realizar. Antes de editar, revisa los archivos relevantes y verifica qué está implementado. Mantén el flujo de sampler de 16 pads, el trabajo pesado fuera del hilo de audio y la compatibilidad del estado guardado. Al terminar, indica los archivos cambiados, las comprobaciones ejecutadas y cualquier limitación pendiente.
