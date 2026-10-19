@@ -124,7 +124,7 @@ El panel JUCE tiene 256 pasos y comparte los colores/escalado del editor.
 La propiedad binaria opcional `sequencer` conserva el formato de proyecto
 version 1 y sus 16 hijos Pad; se valida antes de aplicar el estado y se restaura
 siempre detenido. Proyectos antiguos usan patrones vacios y 120 BPM.
-No incluye grabacion en vivo ni historial de pasos.
+REC MIDI y exportacion se describen mas abajo; no incluye historial de pasos.
 Pruebas cubren offsets de audio, swing, deriva fraccional a 44,1 kHz,
 patrones, restauracion/legacy, limites y callback sin new/delete, ademas de
 controles del panel y captura `build/StudioSP-sequencer.png`.
@@ -149,4 +149,38 @@ Verificacion Windows/Release: Standalone y VST3 compilados; CTest StudioSP.DSP
 1/1 Passed (4,25 s). Panel DAW SYNC inspeccionado en captura y controles
 comprobados a escala 50/100 %. Imagen para GitHub en
 `assets/screenshots/StudioSP-sequencer.png`.
+
+## Grabacion MIDI y exportacion
+
+El reloj del secuenciador trabaja en ticks musicales (9600 por negra), usando
+PPQ absoluto en DAW y avance fraccional en INTERNAL. Los pasos manuales conservan
+su comportamiento. Cada celda habilitada tiene un valor atomico de 64 bits:
+velocidad/timing y duracion; no hay crecimiento de contenedores durante REC.
+El callback captura note-on/off despues de renderizar hasta el offset MIDI.
+La cola de pads de pantalla/teclado pasa por la misma captura al inicio del
+bloque; la preescucha y el render del secuenciador usan rutas que no capturan.
+Cuantizacion usa la rejilla con swing; libre conserva offsets a la rejilla fina.
+Los golpes monitorizados se omiten durante el ciclo actual para evitar dobles.
+La duracion de Gate se programa en el reloj musical; un nuevo golpe del mismo
+pad reemplaza su liberacion pendiente. Stop, restauracion y cambio de reloj
+invalidan las notas pendientes de grabacion.
+
+`sequencerMidi` es una propiedad binaria opcional, version 1 y 6148 bytes, que
+conserva los 16 hijos Pad y la propiedad anterior `sequencer`. Se validan flags,
+offsets y duraciones antes de restaurar. `sequencerQuantize` conserva la opcion;
+REC se restaura desarmado. `PatternMidi.h` crea SMF tipo 0, canal 10, notas
+36-51, tempo/4-4 y final a cuatro negras. La eleccion de archivo usa FileChooser
+y su escritura usa fileJobs. El tempo SMF de 24 bits limita tempos exportables
+muy lentos a aproximadamente 3,58 BPM; el reloj del host sigue aceptando 1 BPM.
+Detalles y limites del overdub en MIDI_FEATURES.md.
+
+Verificacion final Windows/Release: Standalone y VST3 compilados, CTest 1/1
+Passed (5,09 s), incluyendo todos los casos previos. MIDI se prueba en
+`tests/MidiTests.cpp` y la interfaz en `tests/DspTests.cpp`; comparten la auditoria
+de asignaciones mediante TestSupport.h. Separar los casos MIDI evita agotar la
+pila del antiguo monolito de pruebas al renderizar la interfaz; no se amplio
+la pila ni se omitieron pruebas. Archivo SMF escrito y releido para validar
+notas, canal, tempo, velocidades, timing, duracion y cierre de ciclo. Captura
+del panel con REC/Quantize/EXPORT inspeccionada. No se probo un controlador MIDI
+fisico ni la importacion del .mid en un DAW real en esta sesion.
 

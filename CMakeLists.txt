@@ -47,7 +47,7 @@ target_link_libraries(StudioSP PRIVATE juce::juce_audio_utils juce::juce_dsp
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(StudioSPTests tests/DspTests.cpp)
+    add_executable(StudioSPTests tests/DspTests.cpp tests/MidiTests.cpp)
     target_include_directories(StudioSPTests PRIVATE src)
     target_link_libraries(StudioSPTests PRIVATE StudioSP juce::juce_audio_basics juce::juce_recommended_config_flags)
     add_test(NAME StudioSP.DSP COMMAND StudioSPTests)

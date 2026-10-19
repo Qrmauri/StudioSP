@@ -49,6 +49,12 @@ public:
         for (const auto& pattern : sequence.rows) for (auto row : pattern) patternData.writeShort(static_cast<short>(row));
         root.setProperty("sequencer", patternData.getMemoryBlock(), nullptr);
         root.setProperty("sequencerHostSync", engine.sequencer.followsHost(), nullptr);
+        root.setProperty("sequencerQuantize", sequence.quantize, nullptr);
+        juce::MemoryOutputStream midiData; midiData.writeInt(1);
+        for (const auto& pattern : sequence.hits) for (const auto& pad : pattern) for (const auto& hit : pad) {
+            midiData.writeInt(static_cast<int>(hit.value)); midiData.writeShort(static_cast<short>(hit.duration));
+        }
+        root.setProperty("sequencerMidi", midiData.getMemoryBlock(), nullptr);
         for (const auto& pad : saved) {
             juce::ValueTree child("Pad");
             child.setProperty("name", juce::String(pad.sampleName), nullptr); child.setProperty("rate", pad.sampleRate, nullptr);
@@ -77,6 +83,19 @@ public:
         auto root = juce::ValueTree::readFromData(bytes, static_cast<size_t>(size));
         if (!root.hasType("StudioSP") || static_cast<int>(root["version"]) != 1 || root.getNumChildren() != 16) return false;
         studiosp::audio::PatternSequencer::State sequence;
+        sequence.quantize = root.getProperty("sequencerQuantize", true);
+        if (root.hasProperty("sequencerMidi")) {
+            const auto property = root["sequencerMidi"]; const auto* block = property.getBinaryData();
+            if (!block || block->getSize() != 6148) return false;
+            juce::MemoryInputStream stream(*block, false);
+            if (stream.readInt() != 1) return false;
+            for (auto& pattern : sequence.hits) for (auto& pad : pattern) for (auto& hit : pad) {
+                hit.value = static_cast<uint32_t>(stream.readInt()); hit.duration = static_cast<uint16_t>(stream.readShort());
+                const int offset = static_cast<int16_t>((hit.value >> 7) & 0xffffu);
+                if ((hit.value & 0xff000000u) != 0 || hit.duration > studiosp::audio::PatternSequencer::cycleTicks
+                    || offset < -1200 || offset > 1200 || ((hit.value & (1u << 23)) == 0 && offset != 0)) return false;
+            }
+        }
         if (root.hasProperty("sequencer")) {
             const auto property = root["sequencer"]; const auto* block = property.getBinaryData();
             if (!block || block->getSize() != 152) return false;

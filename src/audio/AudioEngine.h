@@ -123,8 +123,8 @@ public:
             commands.finishedRead(commands.getNumReady());
         }
         int a, n, b, m; commands.prepareToRead(commands.getNumReady(), a, n, b, m);
-        for (int i = 0; i < n; ++i) dispatch(events[static_cast<size_t>(a + i)]);
-        for (int i = 0; i < m; ++i) dispatch(events[static_cast<size_t>(b + i)]);
+        for (int i = 0; i < n; ++i) dispatchLive(events[static_cast<size_t>(a + i)]);
+        for (int i = 0; i < m; ++i) dispatchLive(events[static_cast<size_t>(b + i)]);
         commands.finishedRead(n + m);
         int cursor = 0;
         for (const auto metadata : midi) {
@@ -135,8 +135,11 @@ public:
             const auto message = metadata.getMessage();
             if (message.isNoteOnOrOff()) {
                 const int pad = message.getNoteNumber() - 36;
-                if (pad >= 0 && pad < NUM_PADS) dispatch({pad, message.isNoteOn(), message.getFloatVelocity()});
-            } else if (message.isAllNotesOff() || message.isAllSoundOff()) stopAll(true);
+                if (pad >= 0 && pad < NUM_PADS) dispatchLive({pad, message.isNoteOn(), message.getFloatVelocity()});
+            } else if (message.isAllNotesOff() || message.isAllSoundOff()) {
+                for (int pad = 0; pad < NUM_PADS; ++pad) sequencer.recordMidi(pad, false);
+                stopAll(true);
+            }
         }
         render(buffer, cursor, buffer.getNumSamples() - cursor); midi.clear();
         const float frequency = cutoff.load(), distortion = drive.load(), wet = delayMix.load(), master = gain.load();
@@ -468,6 +471,10 @@ private:
         for (int i = 0; i < NUM_PADS; ++i) { if (smooth) voices[i].stopSmooth(); else voices[i].stop(); updatePins(i); } activePads = 0;
         previewVoice.stop(); previewPin = nullptr; previewPlaying = false;
     }
+    void dispatchLive(Event event) {
+        if (event.pad >= 0 && event.pad < NUM_PADS) sequencer.recordMidi(event.pad, event.down, event.velocity);
+        dispatch(event);
+    }
     void dispatch(Event event) {
         if (event.pad == NUM_PADS) {
             if (event.previewGeneration != previewGeneration.load()) return;
@@ -494,7 +501,7 @@ private:
             for (int i = 0; i < NUM_PADS; ++i) { voices[i].renderNextBlock(buffer, offset + start, length); updatePins(i); }
         }, [&](int, unsigned down, unsigned up) {
             for (int i = 0; i < NUM_PADS; ++i) if (up & (1u << i)) dispatch({i, false, 0});
-            for (int i = 0; i < NUM_PADS; ++i) if (down & (1u << i)) dispatch({i, true, 1});
+            for (int i = 0; i < NUM_PADS; ++i) if (down & (1u << i)) dispatch({i, true, sequencer.eventVelocity(i)});
         });
     }
 };

@@ -6,7 +6,7 @@ para cada uno de los 16 pads. BPM comun 40-240 (120 inicial); swing 0-75 %
 (0 inicial). El swing retrasa los pasos pares sin cambiar la duracion del compas.
 Cambiar de patron durante PLAY espera al siguiente compas. STOP detiene todo;
 PLAY comienza desde el paso 1. Los pasos disparan los modos actuales de los pads;
-Gate se libera al siguiente paso y Loop conserva su comportamiento toggle.
+Gate usa la duracion grabada o un paso y Loop conserva su comportamiento toggle.
 
 ## Interfaz y persistencia
 Panel SEQUENCER con rejilla, PLAY/STOP, A/B/C/D, BPM, SWING e indicador del patron
@@ -14,8 +14,9 @@ actual y el pendiente. Los patrones y ajustes se guardan en .studiosp y estado
 VST3. Proyectos antiguos: patrones vacios y 120 BPM; proyectos sin selector de
 reloj conservan INTERNAL. Nuevas instancias VST3/AU usan DAW SYNC; standalone
 usa INTERNAL. Se conserva la seleccion de reloj en el proyecto.
-NEW PROJECT restaura esos valores. No incluye grabacion en vivo, automatizacion,
-Undo de pasos.
+NEW PROJECT restaura esos valores. REC MIDI captura entrada en vivo con
+velocidad/duracion y cuantizacion opcional; EXPORT MIDI guarda el patron elegido.
+Alcance detallado en MIDI_FEATURES.md. No incluye automatizacion ni Undo de pasos.
 
 ## Sincronizacion con el DAW
 DAW SYNC sigue BPM, Play/Stop y PPQ del host. La rejilla conserva 16 semicorcheas

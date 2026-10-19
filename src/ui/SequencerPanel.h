@@ -5,6 +5,7 @@
 namespace studiosp::ui {
 class SequencerPanel : public juce::Component, private juce::Timer {
 public:
+    std::function<void(audio::PatternSequencer::State, int, double)> onExport;
     explicit SequencerPanel(audio::AudioEngine& source) : engine(source) {
         addAndMakeVisible(close); close.onClick = [this] { setVisible(false); };
         addAndMakeVisible(play); play.onClick = [this] {
@@ -18,6 +19,18 @@ public:
         clock.onChange = [this] {
             engine.panic(); engine.sequencer.setHostSync(clock.getSelectedId() == 2); refresh();
         };
+        addAndMakeVisible(record); record.onClick = [this] {
+            engine.sequencer.setRecording(!engine.sequencer.isRecording()); refresh();
+        };
+        record.setTooltip("Graba MIDI 36-51 o los pads con raton/teclado en el patron que suena. Espera a PLAY; no borra pasos.");
+        addAndMakeVisible(quantize); quantize.onClick = [this] {
+            engine.sequencer.setQuantize(quantize.getToggleState()); refresh();
+        };
+        quantize.setTooltip("Activado: semicorchea mas cercana con swing. Desactivado: conserva el timing grabado.");
+        addAndMakeVisible(exportMidi); exportMidi.onClick = [this] {
+            if (onExport) onExport(engine.sequencer.snapshot(), engine.sequencer.requestedPattern(), engine.sequencer.effectiveBpm());
+        };
+        exportMidi.setTooltip("Guardar el patron elegido como .mid: notas y tempo; no incluye audio ni efectos.");
         for (int p = 0; p < 4; ++p) {
             auto& button = patterns[p]; addAndMakeVisible(button);
             button.setButtonText(juce::String::charToString(static_cast<juce::juce_wchar>('A' + p)));
@@ -48,6 +61,9 @@ public:
         clock.setBounds(getWidth() - 280, 16, 150, 30);
         for (int p = 0; p < 4; ++p) patterns[p].setBounds(155 + p * 51, 55, 44, 32);
         bpm.setBounds(380, 55, 275, 32); swing.setBounds(675, 55, getWidth() - 693, 32);
+        record.setBounds(getWidth() - 460, 94, 130, 28);
+        quantize.setBounds(getWidth() - 320, 94, 145, 28);
+        exportMidi.setBounds(getWidth() - 165, 94, 147, 28);
         const int cell = (getWidth() - 130) / 16;
         for (int pad = 0; pad < 16; ++pad) for (int step = 0; step < 16; ++step)
             steps[pad * 16 + step].setBounds(112 + step * cell, 150 + pad * 30, cell - 5, 25);
@@ -66,7 +82,7 @@ public:
         } else if (seq.followsHost()) message += !seq.isArmed() ? "PAUSA LOCAL / PULSA SEGUIR DAW"
             : seq.hostAvailable() ? "ESPERANDO PLAY DEL DAW" : "ESPERANDO BPM Y POSICION DEL DAW";
         else message += "STOP / PULSA LOS PASOS Y PLAY";
-        g.drawText(message, 18, 95, getWidth() - 36, 24, juce::Justification::centredLeft);
+        g.drawText(message, 18, 95, 560, 24, juce::Justification::centredLeft);
         const int cell = (getWidth() - 130) / 16;
         for (int step = 0; step < 16; ++step) {
             const bool active = seq.isPlaying() && seq.currentPattern() == seq.requestedPattern() && seq.currentStep() == step;
@@ -79,11 +95,15 @@ public:
         g.setColour(muted); g.setFont(12);
         g.drawText(seq.followsHost() ? "16 PASOS / 4 BEATS / BPM Y TRANSPORTE DEL DAW / STOP LOCAL: BOTON O ESPACIO"
             : "1 COMPAS / 16 PASOS / TEMPO INTERNO / STOP: BOTON O ESPACIO", 18, 645, getWidth() - 36, 22, juce::Justification::centredLeft);
-        g.drawText("Gate dura un paso. Loop alterna inicio/parada. Los patrones se guardan con SAVE.", 18, 667, getWidth() - 36, 20, juce::Justification::centredLeft);
+        g.drawText(seq.isRecording() ? (seq.isPlaying() ? "REC MIDI / OVERDUB EN EL PATRON QUE SUENA / MISMA CASILLA: REEMPLAZAR GOLPE"
+            : "REC MIDI ARMADO / ESPERANDO TRANSPORTE / NOTAS 36-51")
+            : "REC MIDI conserva velocidad y duracion. EXPORT MIDI guarda el patron elegido; no incluye audio.", 18, 667, getWidth() - 36, 20, juce::Justification::centredLeft);
     }
 private:
     audio::AudioEngine& engine;
     juce::TextButton close{"CERRAR"}, play{"PLAY"};
+    juce::TextButton record{"REC MIDI"}, exportMidi{"EXPORT MIDI"};
+    juce::ToggleButton quantize{"Quantize 1/16"};
     std::array<juce::TextButton, 4> patterns;
     std::array<juce::TextButton, 256> steps;
     juce::Slider bpm, swing;
@@ -91,6 +111,10 @@ private:
     void timerCallback() override { if (isShowing()) refresh(); }
     void refresh() {
         auto& seq = engine.sequencer;
+        record.setToggleState(seq.isRecording(), juce::dontSendNotification);
+        record.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff9d3535));
+        record.setButtonText(seq.isRecording() ? "STOP MIDI REC" : "REC MIDI");
+        quantize.setToggleState(seq.isQuantized(), juce::dontSendNotification);
         const bool host = seq.followsHost();
         clock.setSelectedId(host ? 2 : 1, juce::dontSendNotification);
         play.setButtonText(host ? (seq.isArmed() ? "PAUSA LOCAL" : "SEGUIR DAW") : (seq.isPlaying() ? "STOP PATTERN" : "PLAY"));

@@ -77,6 +77,7 @@ private:
     void timerCallback() override;
     void refreshSelection();
     void chooseFile(int kind);
+    void exportPatternMidi(audio::PatternSequencer::State, int pattern, double tempo);
     void toggleResample();
     void requestNewProject();
     void closeCreativePanel();

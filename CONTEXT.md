@@ -129,7 +129,7 @@ Las pruebas documentadas cubren DSP, MIDI, choke, capturas, historial, proyectos
 
 ## Pendientes y limitaciones
 
-- No hay time-stretch en vivo/sincronizado al host, CLAP, multiples bancos, chop por transitorios/cortes manuales ni automatizacion de parametros DAW. Secuenciador A/B/C/D con 16 pasos por pad, BPM interno 40-240 y swing 0-75 %, cambio al siguiente ciclo y persistencia. DAW SYNC sigue BPM/Play/Stop/PPQ y realinea seeks/loops, con espera silenciosa sin playhead valido. Nuevas instancias plugin: DAW; standalone y proyectos antiguos: INTERNAL. Mantiene ciclos de cuatro negras. No tiene grabacion en vivo ni Undo de patrones. Ver SEQUENCER.md.
+- No hay time-stretch en vivo/sincronizado al host, CLAP, multiples bancos, chop por transitorios/cortes manuales ni automatizacion de parametros DAW. Secuenciador A/B/C/D con 16 pasos por pad, BPM interno 40-240 y swing 0-75 %, cambio al siguiente ciclo y persistencia. DAW SYNC sigue BPM/Play/Stop/PPQ y realinea seeks/loops, con espera silenciosa sin playhead valido. Nuevas instancias plugin: DAW; standalone y proyectos antiguos: INTERNAL. Mantiene ciclos de cuatro negras. REC MIDI captura velocidad, timing y duracion, con Quantize 1/16 opcional; EXPORT MIDI guarda un patron con tempo/swing y notas 36-51, canal 10. No tiene Undo de patrones. Ver SEQUENCER.md y MIDI_FEATURES.md.
 - `FxBusTarget` existe como metadato; los efectos actuales son globales y no hay buses FX independientes.
 - La salida usa un clipper de picos de muestras a −0,1 dBFS. No hay un limitador true-peak ni certificación BS.1770/−0,1 dBTP.
 - La interpolación reduce aliasing, pero no garantiza ausencia total; drive no está sobremuestreado.

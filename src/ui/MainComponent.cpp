@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "audio/PatternMidi.h"
 #include "StudioSPBrand.h"
 #include <limits>
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
@@ -42,6 +43,9 @@ MainComponent::MainComponent(StudioSPProcessor& p) : AudioProcessorEditor(p), en
     newProjectButton.setTooltip("Vaciar los 16 pads y restaurar ajustes para empezar otro proyecto.");
     addAndMakeVisible(creativePanel); creativePanel.setVisible(false);
     addAndMakeVisible(sequencerPanel); sequencerPanel.setVisible(false);
+    sequencerPanel.onExport = [this](audio::PatternSequencer::State state, int pattern, double tempo) {
+        exportPatternMidi(std::move(state), pattern, tempo);
+    };
     addAndMakeVisible(sequencerButton); sequencerButton.setWantsKeyboardFocus(false);
     sequencerButton.onClick = [this] {
         closeCreativePanel(); sequencerPanel.setVisible(!sequencerPanel.isVisible());
@@ -395,6 +399,29 @@ void MainComponent::chooseFile(int kind) {
             juce::MessageManager::callAsync([safe, message, refresh] { if (safe) { if (refresh) safe->refreshSelection(); safe->status.setText(message, juce::dontSendNotification); } });
         });
     });
+}
+void MainComponent::exportPatternMidi(audio::PatternSequencer::State state, int pattern, double tempo) {
+    const auto letter = juce::String::charToString(static_cast<juce::juce_wchar>('A' + pattern));
+    chooser = std::make_unique<juce::FileChooser>("Exportar patron MIDI " + letter,
+        juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("StudioSP-Pattern-" + letter + ".mid"), "*.mid");
+    chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
+        | juce::FileBrowserComponent::warnAboutOverwriting,
+        [safe = juce::Component::SafePointer<MainComponent>(this), state = std::move(state), pattern, tempo](const juce::FileChooser& dialog) {
+            if (!safe) return;
+            auto file = dialog.getResult(); if (file == juce::File{}) return;
+            if (!file.hasFileExtension("mid")) {
+                safe->status.setText("Elige un nombre terminado en .mid para exportar MIDI.", juce::dontSendNotification); return;
+            }
+            safe->status.setText("Exportando patron MIDI...", juce::dontSendNotification);
+            safe->fileJobs.addJob([safe, file, state, pattern, tempo] {
+                juce::MemoryOutputStream bytes;
+                const bool saved = audio::makePatternMidi(state, pattern, tempo).writeTo(bytes, 0)
+                    && file.replaceWithData(bytes.getData(), bytes.getDataSize());
+                juce::MessageManager::callAsync([safe, saved, file] {
+                    if (safe) safe->status.setText(saved ? "MIDI exportado: " + file.getFileName() : "No se pudo exportar el archivo MIDI.", juce::dontSendNotification);
+                });
+            });
+        });
 }
 bool MainComponent::keyPressed(const juce::KeyPress& key) {
     if (dynamic_cast<juce::TextEditor*>(juce::Component::getCurrentlyFocusedComponent()) != nullptr) return false;

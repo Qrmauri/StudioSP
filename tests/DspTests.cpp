@@ -14,12 +14,12 @@
 #include "audio/PadVariations.h"
 #include "audio/RecentAudio.h"
 #include "audio/PatternSequencer.h"
+#include "audio/PatternMidi.h"
 #include "ui/MainComponent.h"
-namespace {
+#include "TestSupport.h"
 thread_local bool auditingAudio = false;
 thread_local int audioAllocations = 0, audioDeletes = 0;
-void require(bool condition, const char* message) { if (!condition) { std::cerr << message << '\n'; std::exit(1); } }
-}
+void runMidiTests();
 void* operator new(std::size_t bytes) {
     if (auditingAudio) ++audioAllocations;
     if (auto* pointer = std::malloc(bytes ? bytes : 1)) return pointer;
@@ -31,7 +31,6 @@ void operator delete[](void* pointer) noexcept { ::operator delete(pointer); }
 void operator delete(void* pointer, std::size_t) noexcept { ::operator delete(pointer); }
 void operator delete[](void* pointer, std::size_t) noexcept { ::operator delete(pointer); }
 int runTests() {
-    juce::ScopedJuceInitialiser_GUI gui;
     using namespace studiosp;
     {
         juce::AudioProcessor::setTypeOfNextNewPlugin(juce::AudioProcessor::wrapperType_VST3);
@@ -915,6 +914,21 @@ int runTests() {
     require(engine.sequencer.followsHost() && engine.sequencer.isPlaying(), "DAW selector must follow the host transport");
     for (auto* child : sequencerPanel->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(child))
         if (slider->getName() == "BPM") require(!slider->isEnabled() && slider->getValue() == 128, "DAW BPM must be shown and manual editing disabled");
+    auto* recordMidi = findButton(*sequencerPanel, "REC MIDI"); auto* exportMidi = findButton(*sequencerPanel, "EXPORT MIDI");
+    require(recordMidi && exportMidi, "Sequencer must expose live MIDI recording and export");
+    recordMidi->onClick(); require(engine.sequencer.isRecording(), "REC MIDI must arm overdub");
+    juce::ToggleButton* quantizeMidi = nullptr;
+    for (auto* child : sequencerPanel->getChildren()) if (auto* toggle = dynamic_cast<juce::ToggleButton*>(child))
+        if (toggle->getButtonText() == "Quantize 1/16") quantizeMidi = toggle;
+    require(quantizeMidi != nullptr, "Live recording must expose optional quantization");
+    quantizeMidi->setToggleState(false, juce::dontSendNotification); quantizeMidi->onClick();
+    require(!engine.sequencer.isQuantized(), "Quantization toggle must reach the audio model");
+    bool exportRequested = false; auto originalExport = sequencerPanel->onExport;
+    sequencerPanel->onExport = [&](audio::PatternSequencer::State state, int pattern, double tempo) {
+        exportRequested = pattern == 3 && state.rows[3][15] == 32768 && tempo == 128;
+    };
+    exportMidi->onClick(); sequencerPanel->onExport = std::move(originalExport);
+    require(exportRequested, "EXPORT MIDI must capture the selected pattern and current DAW tempo");
     for (const auto size : {juce::Point<int>{730, 465}, {1460, 930}}) {
         editor->setSize(size.x, size.y);
         for (auto* child : sequencerPanel->getChildren()) {
@@ -1009,6 +1023,6 @@ int runTests() {
     return 0;
 }
 int main() {
-    try { return runTests(); }
+    try { juce::ScopedJuceInitialiser_GUI gui; runMidiTests(); return runTests(); }
     catch (const std::exception& error) { std::cerr << "Test exception: " << error.what() << '\n'; return 1; }
 }
